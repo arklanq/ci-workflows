@@ -1,5 +1,7 @@
 # CI Workflows
 
-Wspólne workflow GitHub Actions dla projektów konta `arklanq`.
+Shared GitHub Actions workflows for projects under the `arklanq` account.
 
-Nowe workflow są przygotowywane w pull requestach przed wdrożeniem w projektach korzystających z tego repozytorium.
+| Workflow | Description | Example |
+| --- | --- | --- |
+| [Select runner](workflows/select-runner/README.md) | Prefers an online self-hosted runner and falls back to a GitHub-hosted runner. | [example.yaml](workflows/select-runner/example.yaml). |
