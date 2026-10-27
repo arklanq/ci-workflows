@@ -1,0 +1,44 @@
+name: Select runner
+
+on:
+  workflow_call:
+    inputs:
+      primary-runner:
+        description: Comma-separated labels matching the preferred runner, with exact case and no spaces.
+        type: string
+        required: true
+      fallback-runner:
+        description: Single GitHub-hosted runner label used when the primary is unavailable.
+        type: string
+        default: ubuntu-26.04
+      primaries-required:
+        description: Minimum number of online and idle matching runners.
+        type: number
+        default: 1
+    secrets:
+      runner-api-token:
+        description: Fine-grained token with Administration read access to the calling repository.
+        required: false
+    outputs:
+      runner:
+        description: JSON array of selected runner labels, to be parsed with fromJSON.
+        value: ${{ jobs.select-runner.outputs.runner }}
+
+permissions: {}
+
+jobs:
+  select-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      runner: ${{ steps.select.outputs.use-runner }}
+    steps:
+      - name: Prefer an available self-hosted runner
+        id: select
+        uses: O-Mutt/runner-fallback-action@f560f38018b223f50079f2006847fcb5cf07f490 # v2.0.0.
+        with:
+          github-token: ${{ secrets.runner-api-token }}
+          primary-runner: ${{ inputs.primary-runner }}
+          fallback-runner: ${{ inputs.fallback-runner }}
+          primaries-required: ${{ inputs.primaries-required }}
+          fallback-on-error: true

@@ -1,0 +1,28 @@
+# Use this example after the shared workflow has been merged into ci-workflows.
+name: Linux runner example
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  determine-runner:
+    uses: arklanq/ci-workflows/.github/workflows/select-runner.yaml@main
+    with:
+      primary-runner: self-hosted,Linux,X64,pc-wsl
+      fallback-runner: ubuntu-26.04
+    secrets:
+      runner-api-token: ${{ secrets.RUNNER_API_TOKEN }}
+
+  linux-job:
+    needs: determine-runner
+    runs-on: ${{ fromJSON(needs.determine-runner.outputs.runner) }}
+    timeout-minutes: 5
+    steps:
+      - name: Verify the selected environment
+        run: |
+          uname -srm
+          whoami
+          docker version --format '{{.Server.Version}}'
