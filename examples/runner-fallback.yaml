@@ -11,7 +11,7 @@ jobs:
   determine-runner:
     uses: arklanq/ci-workflows/.github/workflows/select-runner.yaml@main
     with:
-      primary-runner: self-hosted,Linux,X64,pc-wsl
+      primary-runner: self-hosted,ubuntu-26.04
       fallback-runner: ubuntu-26.04
     secrets:
       runner-api-token: ${{ secrets.RUNNER_API_TOKEN }}
