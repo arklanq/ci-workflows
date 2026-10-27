@@ -11,10 +11,6 @@ on:
         description: Single GitHub-hosted runner label used when the primary is unavailable.
         type: string
         default: ubuntu-26.04
-      primaries-required:
-        description: Minimum number of online and idle matching runners.
-        type: number
-        default: 1
     secrets:
       runner-api-token:
         description: Fine-grained token with Administration read access to the calling repository.
@@ -33,12 +29,12 @@ jobs:
     outputs:
       runner: ${{ steps.select.outputs.use-runner }}
     steps:
-      - name: Prefer an available self-hosted runner
+      - name: Prefer an online self-hosted runner
         id: select
         uses: O-Mutt/runner-fallback-action@f560f38018b223f50079f2006847fcb5cf07f490 # v2.0.0.
         with:
           github-token: ${{ secrets.runner-api-token }}
           primary-runner: ${{ inputs.primary-runner }}
           fallback-runner: ${{ inputs.fallback-runner }}
-          primaries-required: ${{ inputs.primaries-required }}
+          # Leave primaries-required unset to queue jobs on busy online runners.
           fallback-on-error: true

@@ -4,7 +4,7 @@ Wspólne workflow GitHub Actions dla projektów konta `arklanq`.
 
 ## Wybór runnera
 
-`.github/workflows/select-runner.yaml` sprawdza runnery przypisane do repozytorium wywołującego. Preferuje instancję online, która ma wszystkie wskazane etykiety i jest wolna. Gdy nie ma wymaganej liczby wolnych instancji, wybiera runner GitHuba. Przy błędzie API, brakującym lub nieważnym tokenie również zwraca fallback, zapisując ostrzeżenie w logu.
+`.github/workflows/select-runner.yaml` sprawdza runnery przypisane do repozytorium wywołującego. Wybiera własnego runnera, jeżeli co najmniej jedna pasująca instancja jest online. Zajęta instancja nadal jest wybierana: GitHub ustawia zadania w kolejce do czasu jej zwolnienia. Fallback na runner GitHuba następuje dopiero wtedy, gdy nie ma pasującej instancji online. Przy błędzie API, brakującym lub nieważnym tokenie również zwracany jest fallback, z ostrzeżeniem w logu.
 
 Job wyboru zawsze uruchamia się na `ubuntu-latest`. Dzięki temu wyłączenie własnego PC nie blokuje samego sprawdzenia. Ten krótki job nadal korzysta z zasobów GitHub-hosted.
 
@@ -37,7 +37,6 @@ Pełny przykład ręcznie uruchamianego workflow znajduje się w [examples/runne
 | --- | --- | --- |
 | `primary-runner` | Wymagany. | Etykiety własnego runnera, rozdzielone przecinkami bez spacji. |
 | `fallback-runner` | `ubuntu-26.04`. | Jedna etykieta runnera GitHuba. |
-| `primaries-required` | `1`. | Minimalna liczba pasujących instancji online, które nie są zajęte. Używaj dodatnich liczb całkowitych. |
 | Sekret `runner-api-token` | Opcjonalny. | Token do odczytu listy runnerów repozytorium wywołującego. Bez niego wybierany jest fallback. |
 
 Output `runner` jest tablicą etykiet zapisaną jako JSON. W `runs-on` trzeba użyć `fromJSON`.
@@ -48,10 +47,10 @@ W repozytorium wywołującym dodaj Actions secret `RUNNER_API_TOKEN`. Użyj fine
 
 ### Ograniczenia
 
-- Wybór jest oceną dostępności w chwili sprawdzenia. Nie rezerwuje runnera. Równoległe workflow mogą wybrać tę samą instancję, a zadania będą wtedy czekały w kolejce.
+- Wybór sprawdza status online w chwili wykonania. Własny runner nie musi być wolny; zadania mogą czekać w kolejce. Nie ma rezerwacji instancji.
 - Gdy PC zniknie po wyborze, GitHub nie przeniesie już przydzielonego zadania na runner hosted. To nie jest mechanizm ponawiania zadań po awarii.
 - Akcja dopasowuje etykiety z uwzględnieniem wielkości liter. Używaj nazw zwracanych przez GitHub, np. `Linux` i `X64`.
 - Workflow nie udostępnia runnera innym repozytoriom. Na koncie osobistym każda rejestracja runnera nadal jest związana z jednym repozytorium.
 - Runner Linux obsługuje zadania zgodne z Linuxem. Zadania wymagające macOS albo Windows potrzebują odpowiedniej instancji i zgodnego fallbacku.
 
-Implementacja używa [O-Mutt/runner-fallback-action](https://github.com/O-Mutt/runner-fallback-action) v2.0.0, przypiętej do SHA `f560f38018b223f50079f2006847fcb5cf07f490`. `fallback-on-error` jest włączone, a `primaries-required` domyślnie wynosi `1`.
+Implementacja używa [O-Mutt/runner-fallback-action](https://github.com/O-Mutt/runner-fallback-action) v2.0.0, przypiętej do SHA `f560f38018b223f50079f2006847fcb5cf07f490`. `fallback-on-error` jest włączone. Parametr `primaries-required` pozostaje nieustawiony, dzięki czemu zajęty runner online nie powoduje wyboru fallbacku.
