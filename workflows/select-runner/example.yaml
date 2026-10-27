@@ -1,4 +1,3 @@
-# Use this example after the shared workflow has been merged into ci-workflows.
 name: Linux runner example
 
 on:
