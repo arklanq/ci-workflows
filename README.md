@@ -17,7 +17,7 @@ jobs:
   determine-runner:
     uses: arklanq/ci-workflows/.github/workflows/select-runner.yaml@main
     with:
-      primary-runner: self-hosted,ubuntu-26.04
+      primary-runner: self-hosted,ubuntu-26.04-self-hosted
       fallback-runner: ubuntu-26.04
     secrets:
       runner-api-token: ${{ secrets.RUNNER_API_TOKEN }}
@@ -35,7 +35,7 @@ Pełny przykład ręcznie uruchamianego workflow znajduje się w [examples/runne
 
 | Parametr | Domyślnie | Znaczenie |
 | --- | --- | --- |
-| `primary-runner` | `self-hosted,ubuntu-26.04`. | Etykiety własnego runnera, rozdzielone przecinkami bez spacji. |
+| `primary-runner` | `self-hosted,ubuntu-26.04-self-hosted`. | Etykiety własnego runnera, rozdzielone przecinkami bez spacji. |
 | `fallback-runner` | `ubuntu-26.04`. | Jedna etykieta runnera GitHuba. |
 | Sekret `runner-api-token` | Opcjonalny. | Token do odczytu listy runnerów repozytorium wywołującego. Bez niego wybierany jest fallback. |
 
@@ -47,7 +47,7 @@ W repozytorium wywołującym dodaj Actions secret `RUNNER_API_TOKEN`. Użyj fine
 
 ### Ograniczenia
 
-- Domyślna etykieta `ubuntu-26.04` występuje zarówno na własnych runnerach, jak i w nazwie oficjalnego obrazu. GitHub [odradza takie kolizje](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows#defining-runner-labels): fallback zwracający samo `["ubuntu-26.04"]` nie gwarantuje jednoznacznego wyboru runnera GitHuba. Aby zapewnić rozróżnienie, własne runnery powinny używać innej etykiety, np. `ubuntu-26.04-self-hosted`, także w `primary-runner`.
+- Własne runnery używają etykiety `ubuntu-26.04-self-hosted`, odrębnej od etykiety obrazu GitHuba `ubuntu-26.04`. Zachowuj rozróżnienie między własnymi etykietami a [nazwami oficjalnych obrazów](https://docs.github.com/en/actions/how-tos/troubleshoot-workflows#defining-runner-labels), aby uniknąć niejednoznacznego przydziału.
 - Wybór sprawdza status online w chwili wykonania. Własny runner nie musi być wolny; zadania mogą czekać w kolejce. Nie ma rezerwacji instancji.
 - Gdy PC zniknie po wyborze, GitHub nie przeniesie już przydzielonego zadania na runner hosted. To nie jest mechanizm ponawiania zadań po awarii.
 - Akcja dopasowuje etykiety z uwzględnieniem wielkości liter. Używaj nazw zwracanych przez GitHub, np. `Linux` i `X64`.

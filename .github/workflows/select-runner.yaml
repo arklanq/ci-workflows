@@ -6,7 +6,7 @@ on:
       primary-runner:
         description: Comma-separated labels matching the preferred runner, with exact case and no spaces.
         type: string
-        default: self-hosted,ubuntu-26.04
+        default: self-hosted,ubuntu-26.04-self-hosted
       fallback-runner:
         description: Single GitHub-hosted runner label used when the primary is unavailable.
         type: string
