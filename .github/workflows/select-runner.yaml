@@ -42,7 +42,7 @@ jobs:
             let httpStatus;
 
             try {
-              const identityToken = await core.getIDToken('https://github.com/arklanq/ci-workflows');
+              const identityToken = await core.getIDToken('https://ci-workflows.vercel.app');
               core.setSecret(identityToken);
 
               stage = 'runner service';
@@ -73,19 +73,9 @@ jobs:
                 const code = /Error Code\s*:\s*(\d{3})/.exec(message)?.[1];
                 const issuerMessage = /Error Message:\s*([^\r\n]*)/.exec(message)?.[1]
                   ?.replace(/https?:\/\/[^\s"'<>]+/g, '[url]').replace(/[A-Za-z0-9_+\/=-]{24,}/g, '[redacted]').slice(0, 300);
-                let defaultAudience = 'not-tested';
-                if (code === '400') {
-                  try {
-                    const probe = await core.getIDToken();
-                    core.setSecret(probe);
-                    defaultAudience = 'issued';
-                  } catch {
-                    defaultAudience = 'rejected';
-                  }
-                }
                 const missing = ['ACTIONS_ID_TOKEN_REQUEST_URL', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN'].find(name => message.includes(name));
                 diagnostic = missing ? ` (${missing} unavailable)` :
-                  ` (HTTP ${code ?? 'unknown'}${issuerMessage ? `: ${issuerMessage}` : ''}; default-audience=${defaultAudience}; toolkit=${typeof core.getIDToken}; request-url=${Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL)}; request-token=${Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)})`;
+                  ` (HTTP ${code ?? 'unknown'}${issuerMessage ? `: ${issuerMessage}` : ''})`;
               }
               core.warning(`Runner selection is unavailable during ${stage}${diagnostic}; using the GitHub-hosted fallback.`);
             }

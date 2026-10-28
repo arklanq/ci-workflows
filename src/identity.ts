@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 
 export const oidcIssuer = "https://token.actions.githubusercontent.com";
-export const oidcAudience = "https://github.com/arklanq/ci-workflows";
+export const oidcAudience = "https://ci-workflows.vercel.app";
 export const trustedOwnerId = "23725071";
 export const trustedWorkflow =
   "arklanq/ci-workflows/.github/workflows/select-runner.yaml@refs/heads/main";
