@@ -16,6 +16,9 @@ on:
         description: JSON array of selected runner labels, to be parsed with fromJSON.
         value: ${{ jobs.select-runner.outputs.runner }}
 
+permissions:
+  id-token: write
+
 jobs:
   select-runner:
     runs-on: ubuntu-latest
@@ -35,24 +38,18 @@ jobs:
             const primary = process.env.PRIMARY_RUNNER.split(',');
             const fallback = [process.env.FALLBACK_RUNNER];
             core.setOutput('use-runner', JSON.stringify(fallback));
+            let stage = 'OIDC authentication';
+            let httpStatus;
 
             try {
-              const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
-              tokenUrl.searchParams.set('audience', 'https://github.com/arklanq/ci-workflows');
-              const identityResponse = await fetch(tokenUrl, {
-                headers: { authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` },
-                redirect: 'error',
-                signal: AbortSignal.timeout(10_000),
-              });
-              if (!identityResponse.ok) throw new Error('OIDC request failed.');
-              const identity = await identityResponse.json();
-              if (typeof identity.value !== 'string' || !identity.value) throw new Error('Missing OIDC token.');
-              core.setSecret(identity.value);
+              const identityToken = await core.getIDToken('https://github.com/arklanq/ci-workflows');
+              core.setSecret(identityToken);
 
+              stage = 'runner service';
               const response = await fetch(process.env.RUNNER_SERVICE_URL, {
                 method: 'POST',
                 headers: {
-                  authorization: `Bearer ${identity.value}`,
+                  authorization: `Bearer ${identityToken}`,
                   'content-type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -62,6 +59,7 @@ jobs:
                 redirect: 'error',
                 signal: AbortSignal.timeout(10_000),
               });
+              httpStatus = response.status;
               if (!response.ok) throw new Error('Runner lookup failed.');
               const { runner } = await response.json();
               const matches = labels => Array.isArray(runner) &&
@@ -69,5 +67,5 @@ jobs:
               if (!matches(primary) && !matches(fallback)) throw new Error('Unexpected runner labels.');
               core.setOutput('use-runner', JSON.stringify(runner));
             } catch {
-              core.warning('Runner selection is unavailable; using the GitHub-hosted fallback.');
+              core.warning(`Runner selection is unavailable during ${stage}${httpStatus ? ` (HTTP ${httpStatus})` : ''}; using the GitHub-hosted fallback.`);
             }
