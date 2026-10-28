@@ -30,6 +30,7 @@ async function run(
   options: {
     oidcStatus?: number;
     oidcMessage?: string;
+    defaultAudienceWorks?: boolean;
     serviceStatus?: number;
     missingPermission?: boolean;
     networkError?: boolean;
@@ -38,7 +39,7 @@ async function run(
   const outputs: string[] = [];
   const masks: string[] = [];
   const warnings: string[] = [];
-  const audiences: string[] = [];
+  const audiences: (string | undefined)[] = [];
   const calls: { url: string; options: RequestInit }[] = [];
   const env: Record<string, string> = {
     PRIMARY_RUNNER: primaryRunner,
@@ -47,8 +48,10 @@ async function run(
   };
   await runScript(
     {
-      getIDToken: async (audience: string) => {
+      getIDToken: async (audience?: string) => {
         audiences.push(audience);
+        if (audience === undefined && options.defaultAudienceWorks)
+          return "default-oidc-fixture";
         if (options.oidcMessage) throw new Error(options.oidcMessage);
         if (options.missingPermission || options.oidcStatus)
           throw new Error("private OIDC token-fixture failure");
@@ -122,6 +125,21 @@ describe("reusable workflow", () => {
     expect(result.warnings[0]).not.toContain(secret);
     expect(result.warnings[0]).not.toContain("https://");
     expect(result.selected).toEqual([fallbackRunner]);
+  });
+
+  test("an issuer probe masks and discards the default token instead of forwarding it", async () => {
+    const result = await run(
+      {},
+      {
+        oidcMessage:
+          "Error Code : 400\nError Message: Custom audience rejected.",
+        defaultAudienceWorks: true,
+      },
+    );
+    expect(result.warnings[0]).toContain("default-audience=issued");
+    expect(result.warnings[0]).not.toContain("default-oidc-fixture");
+    expect(result.masks).toEqual(["default-oidc-fixture"]);
+    expect(result.calls).toHaveLength(0);
   });
 
   test.each([
