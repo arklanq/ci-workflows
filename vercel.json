@@ -5,11 +5,5 @@
     "api/*.ts": {
       "maxDuration": 30
     }
-  },
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api/health"
-    }
-  ]
+  }
 }

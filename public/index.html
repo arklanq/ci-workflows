@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Self-hosted runners for GitHub Actions, with a GitHub-hosted fallback." />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <title>Self Hosted Runner</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: oklch(20.8% 0.042 265.755);
+        --foreground: oklch(97% 0.005 265);
+        --muted: color-mix(in oklch, var(--foreground) 68%, var(--background));
+        --accent: oklch(79% 0.14 175);
+        --gutter: clamp(1.5rem, 1rem + 2vw, 3rem);
+        --title-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-synthesis: none;
+        text-wrap: pretty;
+        overflow-wrap: break-word;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: flex;
+        min-block-size: 100svh;
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(var(--gutter), 1fr) [content-start] min(100% - var(--gutter) * 2, 31rem) [content-end] minmax(var(--gutter), 1fr);
+        row-gap: 1.25rem;
+        inline-size: 100%;
+        margin-block: auto;
+        padding-block: 3rem;
+      }
+
+      main > * {
+        grid-column: content;
+        min-inline-size: 0;
+        margin: 0;
+      }
+
+      .icon {
+        inline-size: 4rem;
+        block-size: auto;
+        border-radius: 0.875rem;
+        margin-block-end: 0.5rem;
+      }
+
+      h1 {
+        font-size: var(--title-size);
+        font-weight: 600;
+        letter-spacing: -0.035em;
+        line-height: 1.15;
+        text-wrap: balance;
+      }
+
+      p {
+        color: var(--muted);
+        font-size: 1.0625rem;
+        line-height: 1.7;
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 1.75rem;
+        margin-block-start: 0.25rem;
+      }
+
+      a {
+        display: inline-flex;
+        align-items: center;
+        min-block-size: 2.75rem;
+        color: var(--accent);
+        font-size: 0.9375rem;
+        font-weight: 500;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.3em;
+        touch-action: manipulation;
+      }
+
+      a:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 0.35rem;
+      }
+
+      a:active {
+        color: color-mix(in oklch, var(--accent) 72%, var(--foreground));
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        a:hover {
+          color: var(--foreground);
+        }
+      }
+
+      ::selection {
+        background: var(--accent);
+        color: var(--background);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="icon" src="/icon.png" width="64" height="64" alt="" />
+      <h1>Self Hosted Runner</h1>
+      <p>Selects self-hosted runners for GitHub Actions, with a GitHub-hosted fallback.</p>
+      <nav aria-label="Resources">
+        <a href="https://github.com/arklanq/ci-workflows/blob/main/workflows/select-runner/example.yaml">Workflow example</a>
+        <a href="https://github.com/arklanq/ci-workflows">View on GitHub</a>
+      </nav>
+    </main>
+  </body>
+</html>
