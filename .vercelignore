@@ -1,0 +1,5 @@
+.git/
+.idea/
+.local/
+.env*
+!.env.example

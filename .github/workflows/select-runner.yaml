@@ -11,16 +11,10 @@ on:
         description: Single GitHub-hosted runner label used when the primary is unavailable.
         type: string
         default: ubuntu-26.04
-    secrets:
-      runner-api-token:
-        description: Fine-grained token with Administration read access to the calling repository.
-        required: false
     outputs:
       runner:
         description: JSON array of selected runner labels, to be parsed with fromJSON.
         value: ${{ jobs.select-runner.outputs.runner }}
-
-permissions: {}
 
 jobs:
   select-runner:
@@ -29,12 +23,51 @@ jobs:
     outputs:
       runner: ${{ steps.select.outputs.use-runner }}
     steps:
-      - name: Prefer an online self-hosted runner
+      - name: Select a runner through the GitHub App service
         id: select
-        uses: O-Mutt/runner-fallback-action@f560f38018b223f50079f2006847fcb5cf07f490 # v2.0.0.
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0.
+        env:
+          PRIMARY_RUNNER: ${{ inputs.primary-runner }}
+          FALLBACK_RUNNER: ${{ inputs.fallback-runner }}
+          RUNNER_SERVICE_URL: https://ci-workflows.vercel.app/api/select-runner
         with:
-          github-token: ${{ secrets.runner-api-token }}
-          primary-runner: ${{ inputs.primary-runner }}
-          fallback-runner: ${{ inputs.fallback-runner }}
-          # Leave primaries-required unset to queue jobs on busy online runners.
-          fallback-on-error: true
+          script: |
+            const primary = process.env.PRIMARY_RUNNER.split(',');
+            const fallback = [process.env.FALLBACK_RUNNER];
+            core.setOutput('use-runner', JSON.stringify(fallback));
+
+            try {
+              const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+              tokenUrl.searchParams.set('audience', 'https://github.com/arklanq/ci-workflows');
+              const identityResponse = await fetch(tokenUrl, {
+                headers: { authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` },
+                redirect: 'error',
+                signal: AbortSignal.timeout(10_000),
+              });
+              if (!identityResponse.ok) throw new Error('OIDC request failed.');
+              const identity = await identityResponse.json();
+              if (typeof identity.value !== 'string' || !identity.value) throw new Error('Missing OIDC token.');
+              core.setSecret(identity.value);
+
+              const response = await fetch(process.env.RUNNER_SERVICE_URL, {
+                method: 'POST',
+                headers: {
+                  authorization: `Bearer ${identity.value}`,
+                  'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                  primaryRunner: process.env.PRIMARY_RUNNER,
+                  fallbackRunner: process.env.FALLBACK_RUNNER,
+                }),
+                redirect: 'error',
+                signal: AbortSignal.timeout(10_000),
+              });
+              if (!response.ok) throw new Error('Runner lookup failed.');
+              const { runner } = await response.json();
+              const matches = labels => Array.isArray(runner) &&
+                runner.length === labels.length && runner.every((label, index) => label === labels[index]);
+              if (!matches(primary) && !matches(fallback)) throw new Error('Unexpected runner labels.');
+              core.setOutput('use-runner', JSON.stringify(runner));
+            } catch {
+              core.warning('Runner selection is unavailable; using the GitHub-hosted fallback.');
+            }
