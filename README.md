@@ -20,7 +20,9 @@ The service verifies GitHub's RS256 signature, issuer, audience, token lifetime,
 
 The App installation must belong to the same owner. Each installation token is restricted to the caller's repository ID and read-only administration access. The service reads up to 1,000 runners with pagination, prefers matching online runners even while busy, and returns only the selected labels. It never returns App credentials or installation tokens. Responses are not cached.
 
-`GET /api/health` reports whether App credentials are configured without returning their values. The service is configured for Bun 1.4 Vercel Functions in Frankfurt, with a 30-second function limit and bounded GitHub requests. No database is required.
+Selection has a shared 8-second budget, starting before identity verification, and each GitHub API request is limited to 5 seconds. Request-body reads and GitHub lookups are cancelled when the budget expires or the caller disconnects. This leaves time to respond before the workflow's 10-second service timeout.
+
+`GET /api/health` reports whether App credentials are configured without returning their values. The service is configured for Bun 1.4 Vercel Functions in Frankfurt, with a 30-second function limit. No database is required.
 
 [`bunVersion: "1.4.x"`](https://vercel.com/docs/functions/runtimes/bun) in `vercel.json` selects the production runtime; Vercel manages its patch version. Vercel currently labels the Bun runtime as Beta.
 

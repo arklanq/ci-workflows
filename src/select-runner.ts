@@ -11,7 +11,10 @@ import {
 
 interface Dependencies {
   verifyIdentity: (token: string) => Promise<WorkflowIdentity>;
-  listRunners: (identity: WorkflowIdentity) => Promise<Runner[]>;
+  listRunners: (
+    identity: WorkflowIdentity,
+    signal: AbortSignal,
+  ) => Promise<Runner[]>;
   reportError: (status: number) => void;
 }
 
@@ -26,8 +29,8 @@ export function createSelectRunnerHandler(
 ) {
   const dependencies: Dependencies = {
     verifyIdentity: createIdentityVerifier(),
-    listRunners: (identity) =>
-      createGitHubRunnerClient(readAppCredentials())(identity),
+    listRunners: (identity, signal) =>
+      createGitHubRunnerClient(readAppCredentials())(identity, signal),
     reportError: (status) =>
       console.error("Runner selection failed.", { status }),
     ...overrides,
@@ -46,7 +49,13 @@ export function createSelectRunnerHandler(
       )?.[1];
       if (!token || token.length > 16_384)
         throw new RequestError(401, "Workflow identity is required.");
+      const signal = AbortSignal.any([
+        request.signal,
+        AbortSignal.timeout(8_000),
+      ]);
+      signal.throwIfAborted();
       const identity = await dependencies.verifyIdentity(token);
+      signal.throwIfAborted();
       if (
         request.headers.get("content-type")?.split(";")[0]?.trim() !==
         "application/json"
@@ -54,9 +63,10 @@ export function createSelectRunnerHandler(
         throw new RequestError(415, "Content-Type must be application/json.");
       }
 
-      const body = await readBody(request);
+      const body = await readBody(request, signal);
       const { primaryRunner, fallbackRunner } = parseSelection(body);
-      const runners = await dependencies.listRunners(identity);
+      const runners = await dependencies.listRunners(identity, signal);
+      signal.throwIfAborted();
       const online = runners.some(
         (runner) =>
           runner.status === "online" &&
@@ -84,8 +94,13 @@ export function createSelectRunnerHandler(
   };
 }
 
-async function readBody(request: Request): Promise<unknown> {
-  const reader = request.body?.getReader();
+async function readBody(
+  request: Request,
+  signal: AbortSignal,
+): Promise<unknown> {
+  const reader = request.body
+    ?.pipeThrough(new TransformStream<Uint8Array, Uint8Array>(), { signal })
+    .getReader();
   if (!reader) throw new RequestError(400, "A JSON body is required.");
   const chunks: Uint8Array[] = [];
   let length = 0;
