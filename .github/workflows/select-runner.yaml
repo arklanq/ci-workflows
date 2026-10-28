@@ -66,6 +66,14 @@ jobs:
                 runner.length === labels.length && runner.every((label, index) => label === labels[index]);
               if (!matches(primary) && !matches(fallback)) throw new Error('Unexpected runner labels.');
               core.setOutput('use-runner', JSON.stringify(runner));
-            } catch {
-              core.warning(`Runner selection is unavailable during ${stage}${httpStatus ? ` (HTTP ${httpStatus})` : ''}; using the GitHub-hosted fallback.`);
+            } catch (error) {
+              let diagnostic = httpStatus ? ` (HTTP ${httpStatus})` : '';
+              if (stage === 'OIDC authentication') {
+                const message = typeof error?.message === 'string' ? error.message : '';
+                const code = /Error Code\s*:\s*(\d{3})/.exec(message)?.[1];
+                const missing = ['ACTIONS_ID_TOKEN_REQUEST_URL', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN'].find(name => message.includes(name));
+                diagnostic = missing ? ` (${missing} unavailable)` :
+                  ` (HTTP ${code ?? 'unknown'}; toolkit=${typeof core.getIDToken}; request-url=${Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_URL)}; request-token=${Boolean(process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN)})`;
+              }
+              core.warning(`Runner selection is unavailable during ${stage}${diagnostic}; using the GitHub-hosted fallback.`);
             }
