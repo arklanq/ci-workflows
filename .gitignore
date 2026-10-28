@@ -6,3 +6,6 @@ node_modules/
 coverage/
 .idea/
 .impeccable/review/
+.codex
+.claude
+.DS_Store
