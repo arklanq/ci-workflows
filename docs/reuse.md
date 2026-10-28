@@ -4,6 +4,7 @@ This project contains reusable GitHub Actions workflows and a small HTTP service
 
 | Area | Existing module and responsibility |
 | --- | --- |
+| Public homepage. | [`public/index.html`](../public/index.html) and [`public/icon.png`](../public/icon.png) are served directly by Vercel. Keep `/` available for the homepage instead of rewriting it to the health endpoint. |
 | API entry points. | [`api/`](../api/) exports Vercel HTTP handlers. Keep request logic in `src/`. |
 | Workflow identity. | [`src/identity.ts`](../src/identity.ts) verifies signed GitHub OIDC claims and exports `WorkflowIdentity`, `RequestError`, and trust constants. |
 | GitHub access. | [`src/github.ts`](../src/github.ts) reads App credentials and creates a runner client with an injectable fetch function. It handles installation scoping, pagination, and response validation. |
