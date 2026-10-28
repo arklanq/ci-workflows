@@ -29,6 +29,7 @@ async function run(
   response: unknown,
   options: {
     oidcStatus?: number;
+    oidcMessage?: string;
     serviceStatus?: number;
     missingPermission?: boolean;
     networkError?: boolean;
@@ -48,6 +49,7 @@ async function run(
     {
       getIDToken: async (audience: string) => {
         audiences.push(audience);
+        if (options.oidcMessage) throw new Error(options.oidcMessage);
         if (options.missingPermission || options.oidcStatus)
           throw new Error("private OIDC token-fixture failure");
         return "oidc-token-fixture";
@@ -106,6 +108,20 @@ describe("reusable workflow", () => {
     expect((await run({ runner: [fallbackRunner] })).selected).toEqual([
       fallbackRunner,
     ]);
+  });
+
+  test("reports a bounded issuer explanation without credential-like values or URLs", async () => {
+    const secret = "longcredentialfixture".repeat(8);
+    const result = await run(
+      {},
+      {
+        oidcMessage: `Error Code : 400\nError Message: Invalid audience ${secret} https://issuer.example/private-url`,
+      },
+    );
+    expect(result.warnings[0]).toContain("HTTP 400: Invalid audience");
+    expect(result.warnings[0]).not.toContain(secret);
+    expect(result.warnings[0]).not.toContain("https://");
+    expect(result.selected).toEqual([fallbackRunner]);
   });
 
   test.each([
