@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T00:43:59.363Z",
+  "title": "Self Hosted Runner",
+  "extensions": {},
+  "components": [
+    {
+      "name": "Resource links",
+      "kind": "nav",
+      "description": "Two plain links to the workflow example and repository.",
+      "html": "<nav class=\"ds-resources\" aria-label=\"Resources\"><a href=\"https://github.com/arklanq/ci-workflows/blob/main/workflows/select-runner/example.yaml\">Workflow example</a><a href=\"https://github.com/arklanq/ci-workflows\">View on GitHub</a></nav>",
+      "css": ".ds-resources{display:flex;flex-wrap:wrap;gap:.25rem 1.75rem}.ds-resources a{display:inline-flex;align-items:center;min-block-size:2.75rem;color:oklch(79% .14 175);font:500 .9375rem ui-sans-serif,system-ui,sans-serif;text-underline-offset:.3em}.ds-resources a:focus-visible{outline:2px solid currentColor;outline-offset:.35rem}.ds-resources a:active{color:color-mix(in oklch,oklch(79% .14 175) 72%,oklch(97% .005 265))}@media(hover:hover) and (pointer:fine){.ds-resources a:hover{color:oklch(97% .005 265)}}"
+    }
+  ],
+  "narrative": {
+    "overview": "A minimal English utility page in the existing application identity.",
+    "keyCharacteristics": [
+      "Existing application icon.",
+      "One readable content column.",
+      "Two resource links."
+    ]
+  }
+}
