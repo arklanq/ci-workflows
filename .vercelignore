@@ -3,3 +3,7 @@
 .local/
 .env*
 !.env.example
+.agents/
+.claude/
+.codex/
+.codegraph/

@@ -20,7 +20,9 @@ The service verifies GitHub's RS256 signature, issuer, audience, token lifetime,
 
 The App installation must belong to the same owner. Each installation token is restricted to the caller's repository ID and read-only administration access. The service reads up to 1,000 runners with pagination, prefers matching online runners even while busy, and returns only the selected labels. It never returns App credentials or installation tokens. Responses are not cached.
 
-`GET /api/health` reports whether App credentials are configured without returning their values. The service runs as Node.js 24 Vercel Functions in Frankfurt, with a 30-second function limit and bounded GitHub requests. No database is required.
+`GET /api/health` reports whether App credentials are configured without returning their values. The service is configured for Bun 1.4 Vercel Functions in Frankfurt, with a 30-second function limit and bounded GitHub requests. No database is required.
+
+[`bunVersion: "1.4.x"`](https://vercel.com/docs/functions/runtimes/bun) in `vercel.json` selects the production runtime; Vercel manages its patch version. Vercel currently labels the Bun runtime as Beta.
 
 Production requires only these environment variables:
 
@@ -33,11 +35,18 @@ The setup helper writes these variables through stdin and retains a private, ign
 
 ## Development and verification
 
+Bun 1.4.4 installs dependencies and runs development tools, formatting, type checking, and tests. Keep `packageManager` and `engines.bun` aligned with the production Bun 1.4 runtime and the CI version.
+
 ```sh
 bun install --frozen-lockfile
 bun run format:check
+bun run lint:check
 bun run typecheck
-bun run test
+bun run test:ci
 ```
 
-Tests sign fixture OIDC tokens and App JWTs with temporary RSA keys, mock GitHub responses, and check authorization failures, repository scoping, pagination, online/busy selection, hosted fallback, response limits, secret redaction, and one-time setup handling. They do not require real credentials or change runner state.
+Use `bun run format` and `bun run lint` to apply fixes. `bun run test` runs the full suite with isolated parallel files; `bun run test:watch` reruns it while editing. CI runs the checks above without changing source files and stops tests at the first failure.
+
+`bun run updates:check` lists dependency updates compatible with installed peer requirements. `bun run updates:force` writes those versions to `package.json`; follow it with `bun install` and the checks above before keeping the changes.
+
+See [the reuse guide](docs/reuse.md) for existing modules, [testing](docs/testing.md) for fixtures and test conventions, and [AGENTS.md](AGENTS.md) for agent instructions.
