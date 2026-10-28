@@ -7,6 +7,7 @@ const workflow = Bun.YAML.parse(
     "utf8",
   ),
 ) as {
+  permissions: { "id-token": string };
   jobs: {
     "select-runner": {
       steps: { with: { script: string }; env: Record<string, string> }[];
@@ -36,18 +37,21 @@ async function run(
   const outputs: string[] = [];
   const masks: string[] = [];
   const warnings: string[] = [];
+  const audiences: string[] = [];
   const calls: { url: string; options: RequestInit }[] = [];
   const env: Record<string, string> = {
     PRIMARY_RUNNER: primaryRunner,
     FALLBACK_RUNNER: fallbackRunner,
     RUNNER_SERVICE_URL: step.env["RUNNER_SERVICE_URL"]!,
   };
-  if (!options.missingPermission) {
-    env["ACTIONS_ID_TOKEN_REQUEST_URL"] = "https://github.example/oidc?job=1";
-    env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"] = "request-token-fixture";
-  }
   await runScript(
     {
+      getIDToken: async (audience: string) => {
+        audiences.push(audience);
+        if (options.missingPermission || options.oidcStatus)
+          throw new Error("private OIDC token-fixture failure");
+        return "oidc-token-fixture";
+      },
       setOutput: (_name: string, value: string) => outputs.push(value),
       setSecret: (value: string) => masks.push(value),
       warning: (value: string) => warnings.push(value),
@@ -58,11 +62,6 @@ async function run(
       expect(requestOptions.redirect).toBe("error");
       expect(requestOptions.signal).toBeInstanceOf(AbortSignal);
       if (options.networkError) throw new Error("private upstream details");
-      if (calls.length === 1)
-        return Response.json(
-          { value: "oidc-token-fixture" },
-          { status: options.oidcStatus ?? 200 },
-        );
       return Response.json(response, { status: options.serviceStatus ?? 200 });
     },
     AbortSignal,
@@ -73,26 +72,31 @@ async function run(
     masks,
     warnings,
     calls,
+    audiences,
   };
 }
 
 describe("reusable workflow", () => {
+  test("explicitly requests OIDC permission in the called workflow", () => {
+    expect(workflow.permissions["id-token"]).toBe("write");
+  });
+
   test("sends the masked OIDC identity to the fixed service and accepts matching primary labels", async () => {
     const result = await run({ runner: primaryRunner.split(",") });
     expect(result.selected).toEqual(primaryRunner.split(","));
     expect(result.masks).toEqual(["oidc-token-fixture"]);
     expect(result.warnings).toEqual([]);
-    expect(new URL(result.calls[0]!.url).searchParams.get("audience")).toBe(
+    expect(result.audiences).toEqual([
       "https://github.com/arklanq/ci-workflows",
-    );
-    expect(result.calls[1]!.url).toBe(
+    ]);
+    expect(result.calls[0]!.url).toBe(
       "https://ci-workflows.vercel.app/api/select-runner",
     );
-    expect(result.calls[1]!.options.headers).toEqual({
+    expect(result.calls[0]!.options.headers).toEqual({
       authorization: "Bearer oidc-token-fixture",
       "content-type": "application/json",
     });
-    expect(JSON.parse(String(result.calls[1]!.options.body))).toEqual({
+    expect(JSON.parse(String(result.calls[0]!.options.body))).toEqual({
       primaryRunner,
       fallbackRunner,
     });
@@ -126,6 +130,13 @@ describe("reusable workflow", () => {
       const result = await run({ runner: primaryRunner.split(",") }, options);
       expect(result.selected).toEqual([fallbackRunner]);
       expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain(
+        options.oidcStatus || options.missingPermission
+          ? "OIDC authentication"
+          : "runner service",
+      );
+      if (options.serviceStatus)
+        expect(result.warnings[0]).toContain("HTTP 503");
       expect(result.warnings.join(" ")).not.toContain("token-fixture");
       expect(result.warnings.join(" ")).not.toContain(
         "private upstream details",

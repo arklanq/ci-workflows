@@ -13,7 +13,7 @@ The selection job runs on GitHub-hosted `ubuntu-latest`, including when the self
 
 No PAT or repository secret is needed. The selection job obtains a short-lived GitHub Actions OIDC token with audience `https://github.com/arklanq/ci-workflows` and sends it to the service. The service validates the identity and uses its GitHub App credentials to read the caller's runner list. The application private key stays in the service.
 
-The default `GITHUB_TOKEN` cannot read the runner list. The reusable workflow inherits the caller's permissions; missing OIDC permission, rejected identities, network errors, and malformed service responses select the fallback with a warning. Runner selection never checks out or executes code from the caller's repository.
+The default `GITHUB_TOKEN` cannot read the runner list. Both the caller and reusable workflow grant `id-token: write`; GitHub rejects callers that do not grant this required permission. Token acquisition failures, rejected identities, network errors, and malformed service responses select the fallback with a warning identifying the failing stage. Runner selection never checks out or executes code from the caller's repository.
 
 ## Parameters
 
