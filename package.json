@@ -1,0 +1,23 @@
+{
+  "name": "ci-workflows",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "node": "24.x",
+    "bun": ">=1.4.4"
+  },
+  "scripts": {
+    "format": "bun fmt 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.json'",
+    "format:check": "bun fmt --check 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.json'",
+    "typecheck": "bun check",
+    "test": "bun test",
+    "setup:app": "bun run scripts/setup-github-app.ts"
+  },
+  "dependencies": {
+    "jose": "^6.2.13"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4"
+  }
+}

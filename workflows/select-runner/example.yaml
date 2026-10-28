@@ -8,12 +8,12 @@ permissions:
 
 jobs:
   determine-runner:
+    permissions:
+      id-token: write
     uses: arklanq/ci-workflows/.github/workflows/select-runner.yaml@main
     with:
       primary-runner: self-hosted,ubuntu-26.04-self-hosted
       fallback-runner: ubuntu-26.04
-    secrets:
-      runner-api-token: ${{ secrets.RUNNER_API_TOKEN }}
 
   linux-job:
     needs: determine-runner
