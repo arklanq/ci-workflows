@@ -1,0 +1,6 @@
+# Run package binaries under Bun, matching the production Functions runtime.
+[run]
+bun = true
+
+[test]
+root = "tests"

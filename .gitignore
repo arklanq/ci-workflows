@@ -9,3 +9,5 @@ coverage/
 .codex
 .claude
 .DS_Store
+.agents/
+.codegraph/

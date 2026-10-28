@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createSelectRunnerHandler } from "../src/select-runner.js";
 import type { Runner } from "../src/github.js";
 import type { WorkflowIdentity } from "../src/identity.js";
+import { createSelectRunnerHandler } from "../src/select-runner.js";
 import {
   identity,
   onlineRunner,

@@ -4,19 +4,31 @@
   "type": "module",
   "packageManager": "bun@1.4.4",
   "engines": {
-    "node": "24.x"
+    "bun": ">=1.4.4"
   },
   "scripts": {
-    "format": "bun fmt 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.json'",
-    "format:check": "bun fmt --check 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.json'",
+    "format": "bun fmt 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.{js,json}'",
+    "format:check": "bun fmt --check 'api/**/*.ts' 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts' '*.{js,json}'",
+    "lint": "eslint --fix --cache --cache-location node_modules/.cache/eslint/.eslint-cache --max-warnings 0 .",
+    "lint:check": "eslint --cache --cache-location node_modules/.cache/eslint/.eslint-cache --max-warnings 0 .",
     "typecheck": "bun check",
-    "test": "bun test",
+    "test": "bun test --parallel",
+    "test:ci": "bun test --parallel --bail=1",
+    "test:watch": "bun test --parallel --watch",
+    "updates:check": "ncu --configFileName ncu.config.js",
+    "updates:force": "ncu --configFileName ncu.config.js -u",
     "setup:app": "bun run scripts/setup-github-app.ts"
   },
   "dependencies": {
     "jose": "^6.2.13"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.4"
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.4.4",
+    "eslint": "^10.13.0",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "npm-check-updates": "^23.1.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0"
   }
 }
