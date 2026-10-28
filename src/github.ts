@@ -35,8 +35,10 @@ export function createGitHubRunnerClient(
   async function request(
     path: string,
     token: string,
+    signal: AbortSignal,
     body?: unknown,
   ): Promise<Record<string, unknown>> {
+    signal.throwIfAborted();
     const response = await send(`https://api.github.com${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: {
@@ -47,7 +49,7 @@ export function createGitHubRunnerClient(
         "X-GitHub-Api-Version": "2026-03-10",
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
       redirect: "error",
     });
     if (!response.ok) {
@@ -60,7 +62,11 @@ export function createGitHubRunnerClient(
     return data as Record<string, unknown>;
   }
 
-  return async (identity: WorkflowIdentity): Promise<Runner[]> => {
+  return async (
+    identity: WorkflowIdentity,
+    signal: AbortSignal,
+  ): Promise<Runner[]> => {
+    signal.throwIfAborted();
     const now = Math.floor(Date.now() / 1_000);
     const appToken = await new SignJWT({})
       .setProtectedHeader({ alg: "RS256" })
@@ -73,6 +79,7 @@ export function createGitHubRunnerClient(
     const installation = await request(
       `${repositoryPath}/installation`,
       appToken,
+      signal,
     );
     const account = installation["account"] as { id?: unknown } | undefined;
     if (
@@ -86,6 +93,7 @@ export function createGitHubRunnerClient(
     const authentication = await request(
       `/app/installations/${installation["id"]}/access_tokens`,
       appToken,
+      signal,
       {
         repository_ids: [identity.repositoryId],
         permissions: { administration: "read" },
@@ -101,13 +109,23 @@ export function createGitHubRunnerClient(
       const result = await request(
         `${repositoryPath}/actions/runners?per_page=100&page=${page}`,
         installationToken,
+        signal,
       );
       const batch = result["runners"];
-      if (!Array.isArray(batch) || !batch.every(isRunner)) {
+      const total = result["total_count"];
+      if (
+        typeof total !== "number" ||
+        !Number.isSafeInteger(total) ||
+        total < 0 ||
+        !Array.isArray(batch) ||
+        !batch.every(isRunner)
+      ) {
         throw new RequestError(503, "GitHub returned an invalid response.");
       }
+      if (total > 1_000)
+        throw new RequestError(503, "Runner list exceeds the supported limit.");
       runners.push(...batch);
-      if (batch.length < 100) return runners;
+      if (batch.length < 100 || runners.length === total) return runners;
     }
     throw new RequestError(503, "Runner list exceeds the supported limit.");
   };

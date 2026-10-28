@@ -13,8 +13,8 @@ Tests inside a file run sequentially. Keep shared fixtures and temporary-file cl
 
 - [`fixtures.ts`](../tests/fixtures.ts) generates temporary RSA keys, a local OIDC verifier, signed fixture identities, and runner labels. It never reads production credentials.
 - [`identity.test.ts`](../tests/identity.test.ts) covers signature verification, token lifetime, trust restrictions, and repository claims.
-- [`github.test.ts`](../tests/github.test.ts) injects fetch responses to check App JWTs, repository-scoped installation tokens, pagination, and upstream failures.
-- [`select-runner.test.ts`](../tests/select-runner.test.ts) injects the verifier, runner client, and error reporter to check request validation, busy/online preference, fallback, and secret redaction.
+- [`github.test.ts`](../tests/github.test.ts) injects fetch responses to check App JWTs, repository-scoped installation tokens, cancellation, pagination boundaries, and upstream failures.
+- [`select-runner.test.ts`](../tests/select-runner.test.ts) injects the verifier, runner client, and error reporter to check request validation, the shared deadline, busy/online preference, fallback, and secret redaction.
 - [`workflow.test.ts`](../tests/workflow.test.ts) parses the real reusable workflow and executes its embedded script with mocked GitHub Actions helpers and fetch responses.
 - [`setup-github-app.test.ts`](../tests/setup-github-app.test.ts) covers registration data, one-time callbacks, credential handling, and configuration commands with injected functions and temporary directories.
 

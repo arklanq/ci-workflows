@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import type { Runner } from "../src/github.js";
+import { describe, expect, spyOn, test } from "bun:test";
+import { createGitHubRunnerClient, type Runner } from "../src/github.js";
 import type { WorkflowIdentity } from "../src/identity.js";
 import { createSelectRunnerHandler } from "../src/select-runner.js";
 import {
   identity,
   onlineRunner,
   primary,
+  privateKeyPem,
   selection,
   signIdentity,
   verifyIdentity,
@@ -36,6 +37,118 @@ describe("runner service", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ runner: primary });
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  test("starts the shared deadline before identity verification", async () => {
+    const deadline = new AbortController();
+    const timeout = spyOn(AbortSignal, "timeout").mockReturnValue(
+      deadline.signal,
+    );
+    let lookups = 0;
+    const select = createSelectRunnerHandler({
+      verifyIdentity: async () => {
+        deadline.abort(new Error("private timeout details"));
+        return identity;
+      },
+      listRunners: async () => {
+        lookups++;
+        return [onlineRunner];
+      },
+      reportError: () => {},
+    });
+    try {
+      const response = await select(await request());
+      expect(timeout).toHaveBeenCalledWith(8_000);
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        error: "Runner selection is unavailable.",
+      });
+      expect(lookups).toBe(0);
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
+  test("cancels an unfinished request body when the deadline expires", async () => {
+    const deadline = new AbortController();
+    const timeout = spyOn(AbortSignal, "timeout").mockReturnValue(
+      deadline.signal,
+    );
+    const reading = Promise.withResolvers<void>();
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull() {
+          reading.resolve();
+          return new Promise(() => {});
+        },
+        cancel() {
+          cancelled = true;
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const select = createSelectRunnerHandler({
+      verifyIdentity: async () => identity,
+      listRunners: async () => [onlineRunner],
+      reportError: () => {},
+    });
+    try {
+      const response = select(
+        new Request("https://service.example/api/select-runner", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer fixture",
+            "Content-Type": "application/json",
+          },
+          body,
+        }),
+      );
+      await reading.promise;
+      deadline.abort(new Error("private timeout details"));
+      expect((await response).status).toBe(503);
+      expect(cancelled).toBe(true);
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
+  test("cancels in-flight GitHub access using the handler's shared deadline", async () => {
+    const deadline = new AbortController();
+    const nativeTimeout = AbortSignal.timeout;
+    const timeout = spyOn(AbortSignal, "timeout").mockImplementation(
+      (duration) =>
+        duration === 8_000 ? deadline.signal : nativeTimeout(duration),
+    );
+    let calls = 0;
+    const listRunners = createGitHubRunnerClient(
+      { appId: "1234", privateKey: privateKeyPem },
+      async (_url, options) =>
+        new Promise<Response>((_resolve, reject) => {
+          calls++;
+          options.signal!.addEventListener(
+            "abort",
+            () => reject(options.signal!.reason),
+            { once: true },
+          );
+          deadline.abort(new Error("private timeout details"));
+        }),
+    );
+    const select = createSelectRunnerHandler({
+      verifyIdentity: async () => identity,
+      listRunners,
+      reportError: () => {},
+    });
+    try {
+      const response = await select(await request());
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        error: "Runner selection is unavailable.",
+      });
+      expect(calls).toBe(1);
+    } finally {
+      timeout.mockRestore();
+    }
   });
 
   test.each([
